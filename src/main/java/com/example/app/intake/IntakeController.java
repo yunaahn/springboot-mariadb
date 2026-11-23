@@ -34,7 +34,7 @@ public class IntakeController {
     }
 
     @PostMapping("/{id}/cancel")
-    ApiResponse<IntakeDtos.StatusResponse> cancel(@CurrentUserId Long userId, @PathVariable Long id) {
+    ApiResponse<IntakeDtos.CancelResponse> cancel(@CurrentUserId Long userId, @PathVariable Long id) {
         return new ApiResponse<>(service.cancel(userId, id));
     }
 

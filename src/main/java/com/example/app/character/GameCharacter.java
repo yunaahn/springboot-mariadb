@@ -45,4 +45,32 @@ public class GameCharacter {
         this.activeMarker = null;
         this.completedAt = now;
     }
+
+    public boolean isActive() {
+        return activeMarker != null;
+    }
+
+    public int nextLevelExp() {
+        return Growth.nextLevelExp(level);
+    }
+
+    public void gain(int amount, Instant now) {
+        exp += amount;
+        while (level < Growth.MAX_LEVEL && exp >= nextLevelExp()) {
+            exp -= nextLevelExp();
+            level++;
+        }
+        stage = Growth.stage(level);
+        if (level == Growth.MAX_LEVEL) {
+            exp = 0;
+            complete(now);
+        }
+    }
+
+    /** 레벨은 내리지 않고 현재 레벨의 경험치 안에서만 회수한다. 실제 회수량을 돌려준다. */
+    public int reclaim(int amount) {
+        int reclaimed = isActive() ? Math.min(exp, amount) : 0;
+        exp -= reclaimed;
+        return reclaimed;
+    }
 }

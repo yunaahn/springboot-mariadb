@@ -1,5 +1,6 @@
 package com.example.app.intake;
 
+import com.example.app.reward.RewardDtos;
 import com.example.app.supplement.MealTiming;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotEmpty;
@@ -34,11 +35,16 @@ public final class IntakeDtos {
     }
 
     /** status는 TAKEN, LATE 또는 ALREADY_PROCESSED. */
-    public record TakeResult(Long intakeId, String status) {
+    public record TakeResult(Long intakeId, String status, int exp) {
     }
 
-    /** 경험치·캐릭터·스트릭은 보상 단계에서 추가한다. */
-    public record TakeResponse(List<TakeResult> results, boolean dayCompleted) {
+    /** bonuses는 하루 완료·스트릭 보너스. 진행 중인 캐릭터가 없으면 character는 null이고 경험치는 0. */
+    public record TakeResponse(List<TakeResult> results, boolean dayCompleted, List<RewardDtos.Bonus> bonuses,
+                               RewardDtos.CharacterState character, RewardDtos.Streak streak) {
+    }
+
+    public record CancelResponse(Long intakeId, IntakeStatus status, int reclaimedExp,
+                                 RewardDtos.CharacterState character, RewardDtos.Streak streak) {
     }
 
     public record StatusResponse(Long intakeId, IntakeStatus status) {

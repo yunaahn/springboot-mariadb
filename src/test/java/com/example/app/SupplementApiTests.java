@@ -221,7 +221,8 @@ class SupplementApiTests {
         call(get("/api/v1/products").param("q", "마그").param("size", "2").param("cursor", cursor))
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.page.hasNext").value(false));
-        call(get("/api/v1/products").param("q", "그%")).andExpect(jsonPath("$.data.length()").value(1));
+        call(get("/api/v1/products").param("q", "마그%")).andExpect(jsonPath("$.data.length()").value(1));
+        call(get("/api/v1/products").param("q", "그")).andExpect(jsonPath("$.data.length()").value(0));
         call(get("/api/v1/products").param("q", "마그").param("cursor", "!!")).andExpect(status().isBadRequest());
     }
 

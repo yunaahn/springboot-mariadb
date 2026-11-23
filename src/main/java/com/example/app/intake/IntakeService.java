@@ -1,6 +1,8 @@
 package com.example.app.intake;
 
 import com.example.app.common.ApiException;
+import com.example.app.character.GameCharacter;
+import com.example.app.intake.IntakeDtos.CancelResponse;
 import com.example.app.intake.IntakeDtos.DayResponse;
 import com.example.app.intake.IntakeDtos.Item;
 import com.example.app.intake.IntakeDtos.Progress;
@@ -10,6 +12,9 @@ import com.example.app.intake.IntakeDtos.TakeResponse;
 import com.example.app.intake.IntakeDtos.TakeResult;
 import com.example.app.product.Product;
 import com.example.app.product.ProductService;
+import com.example.app.reward.RewardDtos;
+import com.example.app.reward.RewardService;
+import com.example.app.reward.StreakService;
 import com.example.app.supplement.UserSupplement;
 import com.example.app.supplement.UserSupplementRepository;
 import com.example.app.user.User;
@@ -46,6 +51,8 @@ public class IntakeService {
     private final UserSupplementRepository supplements;
     private final ProductService products;
     private final IntakePlanner planner;
+    private final RewardService rewards;
+    private final StreakService streaks;
     private final Clock clock;
 
     @Transactional(readOnly = true)
@@ -82,36 +89,74 @@ public class IntakeService {
             throw ApiException.forbidden();
         }
         Instant now = clock.instant().truncatedTo(ChronoUnit.MILLIS);
+        LocalDate today = planner.today(user);
+        Before before = before(userId);
         Map<Long, UserSupplement> byId = supplementsOf(found);
         List<TakeResult> results = new ArrayList<>();
+        boolean changed = false;
         for (IntakeLog log : found.stream().sorted(Comparator.comparing(IntakeLog::getId)).toList()) {
             if (log.getStatus() != IntakeStatus.PENDING) {
-                results.add(new TakeResult(log.getId(), "ALREADY_PROCESSED"));
+                results.add(new TakeResult(log.getId(), "ALREADY_PROCESSED", 0));
                 continue;
             }
             checkTodayOrYesterday(user, log);
-            boolean onTime = Duration.between(log.getScheduledAt(), now).abs().compareTo(ON_TIME) <= 0;
+            boolean past = planner.dateOf(user, log).isBefore(today);
+            // 소급 체크는 자정 직후라도 지연 기준으로 보상한다.
+            boolean onTime = !past && Duration.between(log.getScheduledAt(), now).abs().compareTo(ON_TIME) <= 0;
             log.take(onTime ? IntakeStatus.TAKEN : IntakeStatus.LATE, now,
                     byId.get(log.getUserSupplementId()).consume());
-            results.add(new TakeResult(log.getId(), log.getStatus().name()));
+            int exp = past ? RewardService.PAST_EXP : onTime ? RewardService.ON_TIME_EXP : RewardService.LATE_EXP;
+            results.add(new TakeResult(log.getId(), log.getStatus().name(),
+                    rewards.grantIntake(userId, log.getId(), exp, today)));
+            changed = true;
         }
         summarizeDatesOf(user, found);
-        List<IntakeLog> today = planner.logsOn(user, planner.today(user));
-        return new TakeResponse(results, !today.isEmpty() && today.stream().allMatch(IntakeLog::isTaken));
+        boolean completed = dayCompleted(user, today);
+        StreakService.Run run = streaks.run(userId, today);
+        List<RewardDtos.Bonus> bonuses = changed
+                ? rewards.grantBonuses(userId, today, completed, run) : List.of();
+        return new TakeResponse(results, completed, bonuses, after(before), new RewardDtos.Streak(run.length()));
     }
 
-    public StatusResponse cancel(Long userId, Long intakeId) {
+    public CancelResponse cancel(Long userId, Long intakeId) {
         User user = lockUser(userId);
         IntakeLog log = getOwned(userId, intakeId);
-        if (!planner.dateOf(user, log).equals(planner.today(user)) || log.getStatus() == IntakeStatus.MISSED) {
+        LocalDate today = planner.today(user);
+        if (!planner.dateOf(user, log).equals(today) || log.getStatus() == IntakeStatus.MISSED) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "CANCEL_NOT_ALLOWED", "오늘 기록만 취소할 수 있어요.");
         }
+        Before before = before(userId);
+        boolean taken = log.isTaken();
         if (log.getStatus() != IntakeStatus.PENDING) {
             supplements.findById(log.getUserSupplementId()).orElseThrow().restore(log.getTakenQty());
             log.cancel();
             summarizeDatesOf(user, List.of(log));
         }
-        return new StatusResponse(log.getId(), log.getStatus());
+        StreakService.Run run = streaks.run(userId, today);
+        int reclaimed = taken ? rewards.revoke(userId, intakeId, today, dayCompleted(user, today), run) : 0;
+        return new CancelResponse(log.getId(), log.getStatus(), reclaimed, after(before),
+                new RewardDtos.Streak(run.length()));
+    }
+
+    private boolean dayCompleted(User user, LocalDate date) {
+        List<IntakeLog> day = planner.logsOn(user, date);
+        return !day.isEmpty() && day.stream().allMatch(IntakeLog::isTaken);
+    }
+
+    private record Before(GameCharacter character, int level, int stage) {
+    }
+
+    private Before before(Long userId) {
+        return rewards.activeCharacter(userId).map(c -> new Before(c, c.getLevel(), c.getStage())).orElse(null);
+    }
+
+    private RewardDtos.CharacterState after(Before before) {
+        if (before == null) {
+            return null;
+        }
+        GameCharacter c = before.character();
+        return new RewardDtos.CharacterState(c.getLevel(), c.getExp(), c.nextLevelExp(), c.getStage(),
+                c.getLevel() > before.level(), c.getStage() > before.stage(), !c.isActive());
     }
 
     public StatusResponse skip(Long userId, Long intakeId) {

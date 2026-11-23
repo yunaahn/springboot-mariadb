@@ -79,7 +79,10 @@ public class IntakePlanner {
 
     public void deleteAll(User user, UserSupplement supplement) {
         List<IntakeLog> all = logs.findByUserSupplementId(supplement.getId());
-        Set<LocalDate> dates = all.stream().map(l -> dateOf(user, l)).collect(Collectors.toSet());
+        // 지난날 집계는 그대로 두어 스트릭이 바뀌지 않게 한다.
+        LocalDate today = today(user);
+        Set<LocalDate> dates = all.stream().map(l -> dateOf(user, l)).filter(d -> !d.isBefore(today))
+                .collect(Collectors.toSet());
         logs.deleteAll(all);
         logs.flush();
         summarize(user, dates);

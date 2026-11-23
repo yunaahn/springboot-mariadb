@@ -1,14 +1,13 @@
 package com.example.app.product;
 
 import com.example.app.common.ApiException;
+import com.example.app.common.Cursor;
 import com.example.app.common.PageResponse;
 import com.example.app.product.ProductDtos.NewNutrient;
 import com.example.app.product.ProductDtos.NewProduct;
 import com.example.app.product.ProductDtos.NutrientAmount;
 import com.example.app.product.ProductDtos.ProductDetail;
 import com.example.app.product.ProductDtos.ProductSummary;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -35,13 +34,10 @@ public class ProductService {
         if (q.isBlank() || q.length() > 100 || size < 1 || size > 100) {
             throw ApiException.badRequest("검색어(1~100자)와 size(1~100)를 확인해 주세요.");
         }
-        String pattern = "%" + q.strip().replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
-        List<Product> found = products.search(userId, pattern, decodeCursor(cursor), Limit.of(size + 1));
-        boolean hasNext = found.size() > size;
-        List<Product> page = hasNext ? found.subList(0, size) : found;
-        String next = hasNext ? encodeCursor(page.get(size - 1).getId()) : null;
-        return new PageResponse<>(page.stream().map(ProductSummary::of).toList(),
-                new PageResponse.Page(next, hasNext));
+        // 인덱스를 쓰도록 접두사로만 검색한다.
+        String pattern = q.strip().replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
+        return Cursor.page(products.search(userId, pattern, Cursor.decode(cursor, 0), Limit.of(size + 1)),
+                size, Product::getId, ProductSummary::of);
     }
 
     @Transactional(readOnly = true)
@@ -106,21 +102,5 @@ public class ProductService {
 
     private static Set<Integer> nutrientIds(List<ProductNutrient> amounts) {
         return amounts.stream().map(ProductNutrient::getNutrientId).collect(Collectors.toCollection(TreeSet::new));
-    }
-
-    private static String encodeCursor(long id) {
-        return Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(Long.toString(id).getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static long decodeCursor(String cursor) {
-        if (cursor == null) {
-            return 0;
-        }
-        try {
-            return Long.parseLong(new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.UTF_8));
-        } catch (IllegalArgumentException e) {
-            throw ApiException.badRequest("cursor 값이 올바르지 않아요.");
-        }
     }
 }

@@ -30,4 +30,19 @@ public class UserStats {
     public UserStats(Long userId) {
         this.userId = userId;
     }
+
+    public int dailyExpOn(LocalDate date) {
+        return date.equals(dailyExpDate) ? dailyExp : 0;
+    }
+
+    public void addDailyExp(LocalDate date, int amount) {
+        dailyExp = Math.max(0, dailyExpOn(date) + amount);
+        dailyExpDate = date;
+    }
+
+    public void updateStreak(int current, LocalDate lastDate) {
+        currentStreak = current;
+        bestStreak = Math.max(bestStreak, current);
+        lastStreakDate = lastDate;
+    }
 }
