@@ -21,3 +21,16 @@ $env:DB_PASSWORD = '<비밀번호>'
 ```
 
 http://localhost:8081 으로 접속합니다. 테스트는 H2 인메모리 DB로 실행되어 MariaDB가 필요 없습니다.
+
+## DB 스키마
+
+스키마는 Flyway(`src/main/resources/db/migration`)로만 변경합니다. 앱이 시작될 때 자동 적용됩니다.
+한 번 적용된 파일은 수정하지 말고 `V2__...sql`처럼 새 파일을 추가하세요.
+
+노션 ERD와 다른 점:
+
+- `reward_ledger.source_seq`, `intake_logs.cancel_count` 추가: 취소 후 다시 체크해도 보상 지급 가능. `CANCEL`의 `source_id`는 취소 대상 `reward_ledger.id`
+- `notification_settings` 추가: 알림 on/off, 리마인드 간격·횟수
+- `refresh_tokens` 추가: 로그아웃 시 토큰 무효화
+- `user_profiles.lifestyle` → `lifestyle_enc`: 생활패턴도 암호화 저장
+- `users.deleted_at` 인덱스 추가: 탈퇴 배치용. 탈퇴 시 개인·건강정보는 즉시 삭제하고 대용량 기록만 배치로 삭제하는 방침

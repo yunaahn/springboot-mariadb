@@ -1,8 +1,11 @@
+# 기본은 H2. TEST_DB_URL 등을 지정하면 실제 MariaDB로 같은 테스트를 실행한다.
 spring:
   datasource:
-    url: jdbc:h2:mem:test;MODE=MariaDB;DB_CLOSE_DELAY=-1
-    username: sa
-    password: ""
+    url: ${TEST_DB_URL:jdbc:h2:mem:test;MODE=MariaDB;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;DB_CLOSE_DELAY=-1}
+    username: ${TEST_DB_USERNAME:sa}
+    password: ${TEST_DB_PASSWORD:}
+    hikari:
+      connection-init-sql: ${TEST_DB_INIT_SQL:SET TIME ZONE 'UTC'}
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: ${TEST_DDL_AUTO:none}

@@ -5,10 +5,18 @@ spring:
     url: ${DB_URL:jdbc:mariadb://localhost:3306/appdb}
     username: ${DB_USERNAME:appuser}
     password: ${DB_PASSWORD:}
+    hikari:
+      connection-init-sql: SET time_zone = '+00:00'
+  flyway:
+    baseline-on-migrate: true # 예제 memo 테이블이 있던 개발 DB 지원
+    baseline-version: 0
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: update # 개발용. 운영에서는 validate 권장
+      ddl-auto: validate # 스키마 변경은 Flyway로만
+    properties:
+      hibernate.jdbc.time_zone: UTC
+      hibernate.type.java_time_use_direct_jdbc: true # LocalTime이 UTC로 밀리지 않도록
 
 server:
   port: 8081
