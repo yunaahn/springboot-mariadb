@@ -34,3 +34,8 @@ http://localhost:8081 으로 접속합니다. 테스트는 별도의 MariaDB(`ap
 - `refresh_tokens` 추가: 로그아웃 시 토큰 무효화
 - `user_profiles.lifestyle` → `lifestyle_enc`: 생활패턴도 암호화 저장
 - `users.deleted_at` 인덱스 추가: 탈퇴 배치용. 탈퇴 시 개인·건강정보는 즉시 삭제하고 대용량 기록만 배치로 삭제하는 방침
+- `intake_logs.taken_qty` 추가: 체크 때 차감한 수량만큼 취소 시 복원
+
+## 개발용 로그인
+
+소셜 로그인 전까지 `dev` 프로필(`$env:SPRING_PROFILES_ACTIVE = 'dev'`)에서만 개발용 사용자로 API를 쓸 수 있고, 이때는 이 PC에서만 접속됩니다. 프로필이 없으면 API는 401을 응답합니다. `scripts/setup-db.ps1`은 `dev`로 실행합니다. 배포할 때는 `dev`를 쓰지 마세요.

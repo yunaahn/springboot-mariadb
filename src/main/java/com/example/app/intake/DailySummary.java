@@ -30,4 +30,10 @@ public class DailySummary {
         this.userId = userId;
         this.summaryDate = summaryDate;
     }
+
+    public void update(int scheduled, int taken, int ontime) {
+        scheduledCount = scheduled;
+        takenCount = taken;
+        ontimeCount = ontime;
+    }
 }

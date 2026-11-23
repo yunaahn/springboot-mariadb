@@ -6,3 +6,7 @@ spring:
     url: ${TEST_DB_URL:jdbc:mariadb://localhost:3306/appdb_test}
     username: ${TEST_DB_USERNAME:apptest}
     password: ${TEST_DB_PASSWORD:}
+
+app:
+  intake-scheduler:
+    enabled: false

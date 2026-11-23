@@ -41,6 +41,7 @@ for ($try = 1; $try -le 3; $try++) {
 Write-Host 'DB 준비 완료: appdb / appuser' -ForegroundColor Green
 
 $env:DB_PASSWORD = $password
+$env:SPRING_PROFILES_ACTIVE = 'dev' # 로그인 구현 전: 개발용 사용자 사용
 if (-not $env:JAVA_HOME) { $env:JAVA_HOME = 'C:\Program Files\Java\jdk-17' }
 Set-Location (Split-Path $PSScriptRoot -Parent)
 & .\mvnw.cmd spring-boot:run

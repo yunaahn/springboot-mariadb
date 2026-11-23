@@ -24,4 +24,8 @@ public class SupplementSchedule {
         this.userSupplementId = userSupplementId;
         this.intakeTime = intakeTime;
     }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
 }

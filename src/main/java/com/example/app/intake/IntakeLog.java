@@ -1,6 +1,7 @@
 package com.example.app.intake;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -25,6 +26,8 @@ public class IntakeLog {
     @JdbcTypeCode(SqlTypes.VARCHAR)
     private IntakeStatus status = IntakeStatus.PENDING;
     private Instant takenAt;
+    @Column(precision = 8, scale = 2)
+    private BigDecimal takenQty;
     private Instant notifiedAt;
     @JdbcTypeCode(SqlTypes.TINYINT)
     private int remindCount;
@@ -36,5 +39,36 @@ public class IntakeLog {
         this.userSupplementId = userSupplementId;
         this.scheduleId = scheduleId;
         this.scheduledAt = scheduledAt;
+    }
+
+    public void take(IntakeStatus result, Instant at, BigDecimal consumedQty) {
+        status = result;
+        takenAt = at;
+        takenQty = consumedQty;
+        nextRemindAt = null;
+    }
+
+    public void skip() {
+        status = IntakeStatus.SKIPPED;
+        nextRemindAt = null;
+    }
+
+    public void miss() {
+        status = IntakeStatus.MISSED;
+        nextRemindAt = null;
+    }
+
+    /** 체크·건너뛰기를 예정 상태로 되돌린다. */
+    public void cancel() {
+        if (isTaken()) {
+            cancelCount++;
+        }
+        status = IntakeStatus.PENDING;
+        takenAt = null;
+        takenQty = null;
+    }
+
+    public boolean isTaken() {
+        return status == IntakeStatus.TAKEN || status == IntakeStatus.LATE;
     }
 }
