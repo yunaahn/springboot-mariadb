@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: springboot-mariadb
+  datasource:
+    url: ${DB_URL:jdbc:mariadb://localhost:3306/appdb}
+    username: ${DB_USERNAME:appuser}
+    password: ${DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update # 개발용. 운영에서는 validate 권장
+
+server:
+  port: 8080
