@@ -20,7 +20,7 @@ $env:DB_PASSWORD = '<비밀번호>'
 .\mvnw.cmd spring-boot:run
 ```
 
-http://localhost:8081 으로 접속합니다. 테스트는 H2 인메모리 DB로 실행되어 MariaDB가 필요 없습니다.
+http://localhost:8081 으로 접속합니다. 테스트는 별도의 MariaDB(`appdb_test`)를 사용하므로, 빌드 전에 `scripts/setup-test-db.ps1`을 한 번 실행하고 MariaDB를 켜 두세요.
 
 ## DB 스키마
 
