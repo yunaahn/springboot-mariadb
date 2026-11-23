@@ -11,4 +11,4 @@ spring:
       ddl-auto: update # 개발용. 운영에서는 validate 권장
 
 server:
-  port: 8080
+  port: 8081

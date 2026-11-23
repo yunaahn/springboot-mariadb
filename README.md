@@ -20,4 +20,4 @@ $env:DB_PASSWORD = '<비밀번호>'
 .\mvnw.cmd spring-boot:run
 ```
 
-http://localhost:8080 으로 접속합니다. 테스트는 H2 인메모리 DB로 실행되어 MariaDB가 필요 없습니다.
+http://localhost:8081 으로 접속합니다. 테스트는 H2 인메모리 DB로 실행되어 MariaDB가 필요 없습니다.
