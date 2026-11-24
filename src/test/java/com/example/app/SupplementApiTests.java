@@ -227,6 +227,11 @@ class SupplementApiTests {
     }
 
     @Test
+    void listsNutrients() throws Exception {
+        call(get("/api/v1/nutrients")).andExpect(status().isOk()).andExpect(jsonPath("$.data[0].code").value("VIT_A"));
+    }
+
+    @Test
     void rejectsInvalidRequests() throws Exception {
         for (String body : List.of("{}", "not json",
                 body("비타민D", "\"25:00\"", ALL_DAYS), body("비타민D", "\"08:30:15\"", ALL_DAYS),

@@ -7,6 +7,11 @@ spring:
     password: ${DB_PASSWORD:}
     hikari:
       connection-init-sql: SET time_zone = '+00:00'
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          no-cache: true # 화면을 바꾼 뒤 옛 파일이 남지 않도록 매번 확인
   flyway:
     baseline-on-migrate: true # 예제 memo 테이블이 있던 개발 DB 지원
     baseline-version: 0

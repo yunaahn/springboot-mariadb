@@ -26,11 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class RewardService {
 
-    public static final int ON_TIME_EXP = 10;
-    public static final int LATE_EXP = 5;
-    public static final int PAST_EXP = 2;
+    /** 하루 체크 경험치. 그날 일정 수로 나누므로 영양제 개수와 상관없이 같다. */
+    private static final int DAILY_INTAKE_EXP = 80;
     private static final int DAY_COMPLETE_EXP = 20;
-    private static final int DAILY_INTAKE_CAP = 100;
     private static final Map<Integer, Integer> STREAK_EXP = new TreeMap<>(Map.of(7, 100, 30, 500, 100, 2000));
 
     private final RewardLedgerRepository ledger;
@@ -42,10 +40,24 @@ public class RewardService {
         return characters.findByUserIdAndActiveMarker(userId, 1);
     }
 
-    /** 복용 체크 보상. 1일 상한이 적용된 실제 지급량을 돌려준다. */
-    public int grantIntake(Long userId, Long intakeId, int exp, LocalDate today) {
+    public enum Timing {
+        ON_TIME(100), LATE(50), PAST(20);
+
+        private final int percent;
+
+        Timing(int percent) {
+            this.percent = percent;
+        }
+    }
+
+    /** 복용 체크 보상. 실제 지급량을 돌려준다. 소급분은 오늘의 상한을 쓰지 않는다. */
+    public int grantIntake(Long userId, Long intakeId, Timing timing, int scheduledCount, LocalDate today) {
+        int exp = (DAILY_INTAKE_EXP * timing.percent + 100 * scheduledCount - 1) / (100 * scheduledCount);
+        if (timing == Timing.PAST) {
+            return grant(userId, RewardSourceType.INTAKE, intakeId, exp, Integer.MAX_VALUE);
+        }
         UserStats s = statsOf(userId);
-        int granted = grant(userId, RewardSourceType.INTAKE, intakeId, exp, DAILY_INTAKE_CAP - s.dailyExpOn(today));
+        int granted = grant(userId, RewardSourceType.INTAKE, intakeId, exp, DAILY_INTAKE_EXP - s.dailyExpOn(today));
         s.addDailyExp(today, granted);
         return granted;
     }

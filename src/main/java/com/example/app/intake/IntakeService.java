@@ -105,9 +105,11 @@ public class IntakeService {
             boolean onTime = !past && Duration.between(log.getScheduledAt(), now).abs().compareTo(ON_TIME) <= 0;
             log.take(onTime ? IntakeStatus.TAKEN : IntakeStatus.LATE, now,
                     byId.get(log.getUserSupplementId()).consume());
-            int exp = past ? RewardService.PAST_EXP : onTime ? RewardService.ON_TIME_EXP : RewardService.LATE_EXP;
+            RewardService.Timing timing = past ? RewardService.Timing.PAST
+                    : onTime ? RewardService.Timing.ON_TIME : RewardService.Timing.LATE;
+            int scheduled = planner.logsOn(user, planner.dateOf(user, log)).size();
             results.add(new TakeResult(log.getId(), log.getStatus().name(),
-                    rewards.grantIntake(userId, log.getId(), exp, today)));
+                    rewards.grantIntake(userId, log.getId(), timing, scheduled, today)));
             changed = true;
         }
         summarizeDatesOf(user, found);

@@ -77,7 +77,7 @@ class RewardApiTests {
     void createsOnlyOneActiveCharacter() throws Exception {
         call(get("/api/v1/characters/active")).andExpect(jsonPath("$.data.character").isEmpty())
                 .andExpect(jsonPath("$.data.streak.current").value(0));
-        startCharacter().andExpect(status().isCreated()).andExpect(jsonPath("$.data.nextLevelExp").value(100));
+        startCharacter().andExpect(status().isCreated()).andExpect(jsonPath("$.data.nextLevelExp").value(40));
         startCharacter().andExpect(status().isConflict());
         call(get("/api/v1/characters/active")).andExpect(jsonPath("$.data.character.name").value("냥이"));
         call(post("/api/v1/characters"), "{\"speciesCode\":\"DRAGON\",\"name\":\"a\"}").andExpect(status().isBadRequest());
@@ -89,17 +89,17 @@ class RewardApiTests {
         startCharacter();
         List<Long> ids = register("08:30", "20:00");
         koreanTime("2026-11-23T08:40");
-        take(ids.get(0)).andExpect(jsonPath("$.data.results[0].exp").value(10))
+        take(ids.get(0)).andExpect(jsonPath("$.data.results[0].exp").value(40))
                 .andExpect(jsonPath("$.data.bonuses.length()").value(0))
                 .andExpect(jsonPath("$.data.streak.current").value(0));
         koreanTime("2026-11-23T21:00");
-        take(ids.get(1)).andExpect(jsonPath("$.data.results[0].exp").value(5))
+        take(ids.get(1)).andExpect(jsonPath("$.data.results[0].exp").value(20))
                 .andExpect(jsonPath("$.data.bonuses[0].type").value("DAY_COMPLETE"))
-                .andExpect(jsonPath("$.data.character.exp").value(35))
+                .andExpect(jsonPath("$.data.character.level").value(3))
                 .andExpect(jsonPath("$.data.streak.current").value(1));
         take(ids.get(1)).andExpect(jsonPath("$.data.results[0].exp").value(0))
-                .andExpect(jsonPath("$.data.character.exp").value(35));
-        assertThat(ledgerSum()).isEqualTo(35);
+                .andExpect(jsonPath("$.data.character.level").value(3));
+        assertThat(ledgerSum()).isEqualTo(80);
     }
 
     @Test
@@ -107,14 +107,14 @@ class RewardApiTests {
         startCharacter();
         long id = register("08:30").get(0);
         for (int i = 0; i < 3; i++) {
-            take(id).andExpect(jsonPath("$.data.character.exp").value(30))
+            take(id).andExpect(jsonPath("$.data.character.exp").value(20))
                     .andExpect(jsonPath("$.data.streak.current").value(1));
-            cancel(id).andExpect(jsonPath("$.data.reclaimedExp").value(30))
+            cancel(id).andExpect(jsonPath("$.data.reclaimedExp").value(20))
                     .andExpect(jsonPath("$.data.character.exp").value(0))
                     .andExpect(jsonPath("$.data.streak.current").value(0));
             cancel(id).andExpect(jsonPath("$.data.reclaimedExp").value(0));
         }
-        assertThat(ledgerSum()).isZero();
+        assertThat(ledgerSum()).isEqualTo(80);
     }
 
     @Test
@@ -123,14 +123,14 @@ class RewardApiTests {
         long id = register("08:30").get(0);
         GameCharacter c = active();
         c.gain(95, Instant.now());
-        take(id).andExpect(jsonPath("$.data.character.level").value(2))
-                .andExpect(jsonPath("$.data.character.exp").value(25))
+        take(id).andExpect(jsonPath("$.data.character.level").value(4))
+                .andExpect(jsonPath("$.data.character.exp").value(35))
                 .andExpect(jsonPath("$.data.character.leveledUp").value(true));
         for (int i = 0; i < 3; i++) {
-            cancel(id).andExpect(jsonPath("$.data.reclaimedExp").value(25))
-                    .andExpect(jsonPath("$.data.character.level").value(2))
+            cancel(id).andExpect(jsonPath("$.data.reclaimedExp").value(35))
+                    .andExpect(jsonPath("$.data.character.level").value(4))
                     .andExpect(jsonPath("$.data.character.exp").value(0));
-            take(id).andExpect(jsonPath("$.data.character.exp").value(25));
+            take(id).andExpect(jsonPath("$.data.character.exp").value(35));
         }
     }
 
@@ -140,11 +140,11 @@ class RewardApiTests {
         String[] times = IntStream.range(0, 12).mapToObj(i -> "08:%02d".formatted(10 + i)).toArray(String[]::new);
         List<Long> ids = register(times);
         call(post("/api/v1/intakes/take"), "{\"intakeIds\":" + ids + "}")
-                .andExpect(jsonPath("$.data.results[9].exp").value(10))
-                .andExpect(jsonPath("$.data.results[10].exp").value(0))
-                .andExpect(jsonPath("$.data.character.level").value(2))
+                .andExpect(jsonPath("$.data.results[10].exp").value(7))
+                .andExpect(jsonPath("$.data.results[11].exp").value(3))
+                .andExpect(jsonPath("$.data.character.level").value(3))
                 .andExpect(jsonPath("$.data.character.exp").value(20));
-        assertThat(ledgerSum()).isEqualTo(120);
+        assertThat(ledgerSum()).isEqualTo(100);
     }
 
     @Test
@@ -159,12 +159,12 @@ class RewardApiTests {
         take(id).andExpect(jsonPath("$.data.streak.current").value(7))
                 .andExpect(jsonPath("$.data.bonuses[1].type").value("STREAK"))
                 .andExpect(jsonPath("$.data.bonuses[1].exp").value(100))
-                .andExpect(jsonPath("$.data.character.level").value(2));
-        // 130 중 레벨 2의 30까지만 회수되고, 다시 체크해도 총합은 130을 넘지 않는다.
-        cancel(id).andExpect(jsonPath("$.data.reclaimedExp").value(30))
+                .andExpect(jsonPath("$.data.character.level").value(4));
+        // 200 중 레벨 4의 40까지만 회수되고, 다시 체크해도 총합은 200을 넘지 않는다.
+        cancel(id).andExpect(jsonPath("$.data.reclaimedExp").value(40))
                 .andExpect(jsonPath("$.data.streak.current").value(6));
-        take(id).andExpect(jsonPath("$.data.character.exp").value(30));
-        assertThat(ledgerSum()).isEqualTo(130);
+        take(id).andExpect(jsonPath("$.data.character.exp").value(40));
+        assertThat(ledgerSum()).isEqualTo(200);
     }
 
     @Test
@@ -187,7 +187,7 @@ class RewardApiTests {
         long id = register("23:50").get(0);
         koreanTime("2026-11-24T00:10"); // 20분 뒤지만 날짜가 바뀌었으므로 소급
         take(id).andExpect(jsonPath("$.data.results[0].status").value("LATE"))
-                .andExpect(jsonPath("$.data.results[0].exp").value(2))
+                .andExpect(jsonPath("$.data.results[0].exp").value(16))
                 .andExpect(jsonPath("$.data.bonuses.length()").value(0))
                 .andExpect(jsonPath("$.data.streak.current").value(1));
     }
@@ -205,7 +205,7 @@ class RewardApiTests {
     @Test
     void completesCharacterAndAllowsNext() throws Exception {
         startCharacter();
-        active().gain(10_449, Instant.now());
+        active().gain(5_999, Instant.now());
         List<Long> ids = register("08:10", "08:20");
         assertThat(active().getLevel()).isEqualTo(19);
         take(ids.get(0)).andExpect(jsonPath("$.data.character.completed").value(true))
